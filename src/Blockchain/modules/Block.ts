@@ -1,26 +1,27 @@
 import { webcrypto } from "crypto";
+import User from "./User";
 
 class Block {
 
-    private id: number|null = null;
-    private previousHash: string|null = null;
-    private hash: Promise<string>|null = null;
-    private blockInfo: string|null = null;
-    private timestamp:number|null = null;
+    private id: number|undefined = undefined;
+    private hash: Promise<string>|undefined = undefined;
+    private blockInfo: string|undefined = undefined;
+    private timestamp:number|undefined = undefined;
+    private author: User|undefined = undefined;
 
-    constructor (id:number, previousHash:string, blockInfo:string) {
+    constructor (id:number, author:User, blockInfo:string) {
         this.id = id;
-        this.previousHash = previousHash;
         this.blockInfo = blockInfo;
         this.timestamp = (new Date()).getTime();
-        this.hash = this.generateHash(this.id, previousHash, blockInfo, this.timestamp);
+        this.hash = this.generateHash();
+        this.author = author.getUserData();
     }
 
     /** Method to generate new block hash */
-    async generateHash(id:number, previousHash:string, blockInfo:string, timestamp:number): Promise<string> {
+    async generateHash(): Promise<string> {
         let encoder = new TextEncoder();
-        let data = encoder.encode(id + previousHash + blockInfo + this.timestamp);
-        let buffer = await webcrypto.subtle.digest('SHA-256', data);
+        let encodedData = encoder.encode(JSON.stringify(this));
+        let buffer = await webcrypto.subtle.digest('SHA-256', encodedData);
         
         let hash = Array.from(new Uint8Array(buffer)).map(array=>{
             return array.toString(16).padStart(2, '0');
@@ -30,18 +31,24 @@ class Block {
     }
 
     /** Get hash of block */
-    getHash(): Promise<string>|null {
-        return this.hash;
+    async getHash(): Promise<string> {
+        let hash:string = await this.hash!;
+        return hash;
     }
 
     /** Get timestamp */
-    getTimestamp(): number|null {
+    getTimestamp(): number|undefined {
         return this.timestamp;
     }
 
     /** Get block info */
-    getInfo(): string|null {
+    getInfo(): string|undefined {
         return this.blockInfo;
+    }
+
+    /** Get author */
+    getAuthor(): User {
+        return this.author!;
     }
 }
 
